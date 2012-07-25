@@ -36,6 +36,7 @@ class ContractAdmin(admin.ModelAdmin):
                 ('designer', 'bussiness_staff', 'date_signed'),
                 ('directfee', 'directfee_discount', 'directfee_actual'),
                 ('managefee', 'managefee_discount'),
+                ('designfee', 'designfee_discount'),
                 ('materialfee', 'materialfee_actual'),
                 ('area', 'all_included'),
             )
