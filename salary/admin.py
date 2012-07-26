@@ -19,15 +19,15 @@ class PMExpenditureInline(admin.TabularInline):
 class ContractAdmin(admin.ModelAdmin):
     list_display = [
         'customer', 'address', 'designer',
-        'bussiness_staff', 'date_signed', 'area',
+        'salesman', 'date_signed', 'area',
         'all_included', 'designfee_paid',
     ]
     search_fields = [
         'customer__name', 'address', 'designer__name',
-        'bussiness_staff__name',
+        'salesman__name',
     ]
     list_filter = [
-        'designer', 'bussiness_staff', 'all_included',
+        'designer', 'salesman', 'all_included',
     ]
     date_hierarchy = 'date_signed'
     inlines = [
@@ -40,7 +40,7 @@ class ContractAdmin(admin.ModelAdmin):
         (u'基本信息', {
             'fields': (
                 ('customer', 'address'),
-                ('designer', 'bussiness_staff'),
+                ('designer', 'salesman'),
                 ('date_signed', 'date_start', 'date_finish'),
                 ('directfee', 'directfee_discount', 'directfee_actual'),
                 ('managefee', 'managefee_discount'),
@@ -85,15 +85,19 @@ class PMExpenditureAdmin(admin.ModelAdmin):
 
     list_filter = ['type']
 
+class CustomerCommentInline(admin.TabularInline):
+    model = CustomerComment
+
 class CustomerAdmin(admin.ModelAdmin):
     list_display =[
         'name', 'phone', 'arrive_time', 'source', 'region',
-        'receptionist'
+        'salesman', 'designer'
     ]
 
     list_filter = [
         'source', 'region'
     ]
+    inlines = [CustomerCommentInline]
 
 class PrimaryMaterialAdmin(admin.ModelAdmin):
     list_display = [

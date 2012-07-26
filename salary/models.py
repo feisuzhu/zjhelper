@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 
@@ -33,11 +34,23 @@ class Customer(models.Model):
     arrive_time = models.DateField(u'到店时间')
     source = models.CharField(u'客户来源', max_length=20)
     region = models.CharField(u'区域', max_length=20)
-    receptionist = models.ForeignKey(Staff, verbose_name=u'接待业务员', related_name='served_customers')
-    comment = models.TextField(u'备注')
+    salesman = models.ForeignKey(Staff, verbose_name=u'接待业务员', related_name='customers_salesman')
+    designer = models.ForeignKey(Staff, verbose_name=u'接待设计师', related_name='customers_designer')
 
     def __unicode__(self):
         return self.name
+
+class CustomerComment(models.Model):
+
+    class Meta:
+        verbose_name = verbose_name_plural = u"客户备注"
+
+    customer = models.ForeignKey(Customer, verbose_name=u'客户', related_name='comments')
+    date = models.DateField(u'备注时间')
+    text = models.TextField(u'备注内容')
+
+    def __unicode__(self):
+        return u'%s - 备注内容' % self.name
 
 class Contract(models.Model):
 
@@ -47,10 +60,10 @@ class Contract(models.Model):
     customer = models.ForeignKey(Customer, verbose_name=u'客户', related_name='contracts')
     address = models.CharField(u'工程地址', max_length=60)
     designer = models.ForeignKey(Staff, verbose_name = u'设计师', related_name = 'contracts_designer')
-    bussiness_staff = models.ForeignKey(Staff, verbose_name = u'业务人员', related_name = 'contracts_bussiness')
+    salesman = models.ForeignKey(Staff, verbose_name = u'业务人员', related_name = 'contracts_salesman')
     date_signed = models.DateField(u'合同签订日期')
-    date_start = models.DateField(u'合同开工日期', null=True)
-    date_finish = models.DateField(u'合同竣工日期', null=True)
+    date_start = models.DateField(u'合同开工日期', null=True, blank=True)
+    date_finish = models.DateField(u'合同竣工日期', null=True, blank=True)
     directfee = models.DecimalField(u'直接费', max_digits=11, decimal_places=2)
     directfee_discount = models.DecimalField(u'直接费（折）', max_digits=11, decimal_places=2)
     managefee = models.DecimalField(u'管理费', max_digits=11, decimal_places=2)
@@ -58,18 +71,18 @@ class Contract(models.Model):
     designfee = models.DecimalField(u'设计费', max_digits=11, decimal_places=2)
     designfee_discount = models.DecimalField(u'设计费（折）', max_digits=11, decimal_places=2)
     materialfee = models.DecimalField(u'主材费', max_digits=11, decimal_places=2)
-    directfee_actual = models.DecimalField(u'直接费(实际)', max_digits=11, decimal_places=2)
-    materialfee_actual = models.DecimalField(u'主材费(实际)', max_digits=11, decimal_places=2)
+    directfee_actual = models.DecimalField(u'直接费(实际)', max_digits=11, decimal_places=2, null=True, blank=True)
+    materialfee_actual = models.DecimalField(u'主材费(实际)', max_digits=11, decimal_places=2, null=True, blank=True)
     area = models.PositiveIntegerField(u'面积')
     all_included = models.BooleanField(u'全包')
 
-    earnest_paid = models.DecimalField(u'已付定金', max_digits=11, decimal_places=2)
-    designfee_paid = models.DecimalField(u'已付设计费', max_digits=11, decimal_places=2)
-    managefee_paid = models.DecimalField(u'已付管理费', max_digits=11, decimal_places=2)
-    generalfee1_paid = models.DecimalField(u'已付首期款', max_digits=11, decimal_places=2)
-    generalfee2_paid = models.DecimalField(u'已付二期款', max_digits=11, decimal_places=2)
-    generalfee3_paid = models.DecimalField(u'已付三期款', max_digits=11, decimal_places=2)
-    generalfee4_paid = models.DecimalField(u'已付尾款', max_digits=11, decimal_places=2)
+    earnest_paid = models.DecimalField(u'已付定金', max_digits=11, decimal_places=2, null=True, blank=True)
+    designfee_paid = models.DecimalField(u'已付设计费', max_digits=11, decimal_places=2, null=True, blank=True)
+    managefee_paid = models.DecimalField(u'已付管理费', max_digits=11, decimal_places=2, null=True, blank=True)
+    generalfee1_paid = models.DecimalField(u'已付首期款', max_digits=11, decimal_places=2, null=True, blank=True)
+    generalfee2_paid = models.DecimalField(u'已付二期款', max_digits=11, decimal_places=2, null=True, blank=True)
+    generalfee3_paid = models.DecimalField(u'已付三期款', max_digits=11, decimal_places=2, null=True, blank=True)
+    generalfee4_paid = models.DecimalField(u'已付尾款', max_digits=11, decimal_places=2, null=True, blank=True)
 
     def __unicode__(self):
         return u'%s - %s' % (self.customer.name, self.address)
@@ -114,11 +127,11 @@ class Expenditure(models.Model):
     contract = models.ForeignKey(Contract, verbose_name = u'合同', related_name = 'expenditures')
     type = models.IntegerField(u'类型', choices=TYPE_CHOICES)
     budget = models.DecimalField(u'预算', max_digits=11, decimal_places=2)
-    amount1 = models.DecimalField(u'首期款', max_digits=11, decimal_places=2)
-    granttime1 = models.DateField(u'首期款发放时间')
-    amount2 = models.DecimalField(u'尾款', max_digits=11, decimal_places=2)
-    granttime2 = models.DateField(u'尾款发放时间')
-    materialfee = models.DecimalField(u'材料费', max_digits=11, decimal_places=2)
+    amount1 = models.DecimalField(u'首期款', max_digits=11, decimal_places=2, null=True, blank=True)
+    granttime1 = models.DateField(u'首期款发放时间', null=True, blank=True)
+    amount2 = models.DecimalField(u'尾款', max_digits=11, decimal_places=2, null=True, blank=True)
+    granttime2 = models.DateField(u'尾款发放时间', null=True, blank=True)
+    materialfee = models.DecimalField(u'材料费', max_digits=11, decimal_places=2, null=True, blank=True)
 
     def __unicode__(self):
         return u'%s - 支出' % self.get_type_display()
@@ -134,6 +147,10 @@ class PrimaryMaterial(models.Model):
     def __unicode__(self):
         return self.name
 
+def percentage_validator(v):
+    if not 0.0 <= v <= 1.0:
+        raise ValidationError(u'请输入0-1之间的纯小数')
+
 class PMExpenditure(models.Model):
 
     class Meta:
@@ -144,9 +161,9 @@ class PMExpenditure(models.Model):
     type = models.ForeignKey(PrimaryMaterial, verbose_name = u'主材类型', related_name = 'expenditures')
     unitprice_budget = models.DecimalField(u'主材单价预算', max_digits=11, decimal_places=2)
     amount_budget = models.PositiveIntegerField(u'数量预算')
-    unitprice_actual = models.DecimalField(u'实际主材单价', max_digits=11, decimal_places=2)
-    commission_rate = models.FloatField(u'设计师返点比例')
-    amount_actual = models.PositiveIntegerField(u'实际数量')
+    unitprice_actual = models.DecimalField(u'实际主材单价', max_digits=11, decimal_places=2, null=True, blank=True)
+    amount_actual = models.PositiveIntegerField(u'实际数量', null=True, blank=True)
+    commission_rate = models.FloatField(u'设计师返点比例', validators=[percentage_validator])
 
     def __unicode__(self):
         return u'%s - 合同主材支出' % self.type.name
