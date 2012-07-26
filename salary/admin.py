@@ -13,27 +13,35 @@ class CommissionInline(admin.TabularInline):
 class ExpenditureInline(admin.TabularInline):
     model = Expenditure
 
+class PMExpenditureInline(admin.TabularInline):
+    model = PMExpenditure
+
 class ContractAdmin(admin.ModelAdmin):
     list_display = [
-        'customer_name', 'address', 'designer',
+        'customer', 'address', 'designer',
         'bussiness_staff', 'date_signed', 'area',
         'all_included', 'designfee_paid',
     ]
     search_fields = [
-        'customer_name', 'address', 'designer__name',
+        'customer__name', 'address', 'designer__name',
         'bussiness_staff__name',
     ]
     list_filter = [
         'designer', 'bussiness_staff', 'all_included',
     ]
     date_hierarchy = 'date_signed'
-    inlines = [CommissionInline, ExpenditureInline]
+    inlines = [
+        PMExpenditureInline,
+        ExpenditureInline,
+        CommissionInline,
+    ]
 
     fieldsets = (
         (u'基本信息', {
             'fields': (
-                ('customer_name', 'address'),
-                ('designer', 'bussiness_staff', 'date_signed'),
+                ('customer', 'address'),
+                ('designer', 'bussiness_staff'),
+                ('date_signed', 'date_start', 'date_finish'),
                 ('directfee', 'directfee_discount', 'directfee_actual'),
                 ('managefee', 'managefee_discount'),
                 ('designfee', 'designfee_discount'),
@@ -47,12 +55,6 @@ class ContractAdmin(admin.ModelAdmin):
                 ('generalfee1_paid', 'generalfee2_paid', 'generalfee3_paid', 'generalfee4_paid'),
             )
         }),
-        (u'合同预算', {
-            'fields': (
-                ('waterelectricity_budget', 'carpenter_budget', 'bricklayer_budget', 'painter_budget'),
-                'material_budget',
-            )
-        })
     )
 
 class CommissionAdmin(admin.ModelAdmin):
@@ -71,11 +73,38 @@ class ExpenditureAdmin(admin.ModelAdmin):
     ]
 
     list_filter = [
-        'contract', 'type'
+        'type'
+    ]
+
+class PMExpenditureAdmin(admin.ModelAdmin):
+    list_display = [
+        'contract', 'type', 'unitprice_budget',
+        'amount_budget', 'unitprice_actual', 'commission_rate',
+        'amount_actual'
+    ]
+
+    list_filter = ['type']
+
+class CustomerAdmin(admin.ModelAdmin):
+    list_display =[
+        'name', 'phone', 'arrive_time', 'source', 'region',
+        'receptionist'
+    ]
+
+    list_filter = [
+        'source', 'region'
+    ]
+
+class PrimaryMaterialAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 'reference_price'
     ]
 
 reg = admin.site.register
 reg(Staff, StaffAdmin)
+reg(Customer, CustomerAdmin)
 reg(Contract, ContractAdmin)
 reg(Commission, CommissionAdmin)
 reg(Expenditure, ExpenditureAdmin)
+reg(PrimaryMaterial, PrimaryMaterialAdmin)
+reg(PMExpenditure, PMExpenditureAdmin)
