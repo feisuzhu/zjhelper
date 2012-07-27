@@ -64,6 +64,7 @@ class Contract(models.Model):
     date_signed = models.DateField(u'合同签订日期')
     date_start = models.DateField(u'合同开工日期', null=True, blank=True)
     date_finish = models.DateField(u'合同竣工日期', null=True, blank=True)
+    date_finish_actual = models.DateField(u'实际竣工日期', null=True, blank=True)
     directfee = models.DecimalField(u'直接费', max_digits=11, decimal_places=2)
     directfee_discount = models.DecimalField(u'直接费（折）', max_digits=11, decimal_places=2)
     managefee = models.DecimalField(u'管理费', max_digits=11, decimal_places=2)
@@ -96,10 +97,14 @@ class Commission(models.Model):
     TYPE_CHOICES = (
         (1, u'设计师提点1'),
         (2, u'设计师提点2'),
-        (3, u'业务员提点'),
-        (4, u'工程经理提点'),
-        (5, u'工程管理员提点'),
-        (6, u'材料经理提点'),
+        (3, u'设计费发放'),
+        (4, u'业务员提点'),
+        (5, u'工程经理提点'),
+        (6, u'工程管理员提点'),
+        (7, u'材料经理提点'),
+        (8, u'组长提点'),
+        (9, u'市场经理提点'),
+        (10, u'设计经理提点'),
     )
 
     contract = models.ForeignKey(Contract, verbose_name = u'合同', related_name = 'commissions')
@@ -161,6 +166,7 @@ class PMExpenditure(models.Model):
     type = models.ForeignKey(PrimaryMaterial, verbose_name = u'主材类型', related_name = 'expenditures')
     unitprice_budget = models.DecimalField(u'主材单价预算', max_digits=11, decimal_places=2)
     amount_budget = models.PositiveIntegerField(u'数量预算')
+    type_actual = models.ForeignKey(PrimaryMaterial, verbose_name = u'实际主材类型', related_name = 'expenditures_actual')
     unitprice_actual = models.DecimalField(u'实际主材单价', max_digits=11, decimal_places=2, null=True, blank=True)
     amount_actual = models.PositiveIntegerField(u'实际数量', null=True, blank=True)
     commission_rate = models.FloatField(u'设计师返点比例', validators=[percentage_validator])

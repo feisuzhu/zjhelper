@@ -39,14 +39,13 @@ class ContractAdmin(admin.ModelAdmin):
     fieldsets = (
         (u'基本信息', {
             'fields': (
-                ('customer', 'address'),
+                ('customer', 'address', 'area', 'all_included'),
                 ('designer', 'salesman'),
-                ('date_signed', 'date_start', 'date_finish'),
+                ('date_signed', 'date_start', 'date_finish', 'date_finish_actual'),
                 ('directfee', 'directfee_discount', 'directfee_actual'),
                 ('managefee', 'managefee_discount'),
                 ('designfee', 'designfee_discount'),
                 ('materialfee', 'materialfee_actual'),
-                ('area', 'all_included'),
             )
         }),
         (u'客户付款状态', {
