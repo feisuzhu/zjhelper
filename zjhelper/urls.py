@@ -4,6 +4,8 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 admin.autodiscover()
 
+from salary import views
+
 urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'zjhelper.views.home', name='home'),
@@ -13,5 +15,7 @@ urlpatterns = patterns('',
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
-    url(r'^', include(admin.site.urls)),
+    url(r'^$', views.index),
+    url(r'^reports/(?P<type>\w+)/', views.reports),
+    url(r'^admin/', include(admin.site.urls)),
 )

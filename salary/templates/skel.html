@@ -1,0 +1,69 @@
+{% load staticfiles %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux (vers 25 March 2009), see www.w3.org" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link type="text/css" rel="stylesheet" href="{% static "css/style.css" %}" />
+<script type="text/javascript" src="{% static "jquery-1.7.2.min.js" %}"></script>
+<script type="text/javascript" src="{% static "jquery-ui.min.js" %}"></script>
+
+<title>{% block title %}zjsalary{% endblock title %}</title>
+<style type="text/css">
+{% block pagecss %}
+{% endblock pagecss %}
+</style>
+</head>
+<body>
+<div id="page">
+
+<div id="banner">
+周济的工资管理
+</div>
+
+<div id="nav" class="section">
+<ul>
+<li href="/">报表</li>
+<li href="/admin/">后台数据录入</li>
+</ul>
+</div>
+{% block blocks %}
+{% endblock blocks %}
+</div>
+<script type="text/javascript">
+//<![CDATA[
+$(document).ready(function() {
+        var listate = {
+        out: {
+            backgroundColor: "white",
+            color: "#999999"
+        },
+        over: {
+            backgroundColor: "#FFFF99",
+            color: "black"
+        },
+        click: {
+            backgroundColor: "#FFFF3C",
+            color: "black"
+        }
+    };
+
+    $("#nav ul li").hover(
+        // the addClass version lags, holy shit
+        function() { $(this).stop(true).animate(listate.over, 150); },
+        function() { $(this).animate(listate.out, 150);  }
+     ).click(
+        function() {
+            $(this).animate(listate.click, 50).animate(listate.over, 50);
+            window.location.href = $(this).attr('href');
+        }
+     );
+     {% block pagejs %}
+     {% endblock pagejs%}
+});
+//]]>
+</script>
+</body>
+</html>
