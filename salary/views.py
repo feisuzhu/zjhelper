@@ -5,8 +5,9 @@ from django.http import HttpResponse, Http404
 from django.shortcuts import render_to_response
 from django.template import RequestContext, Context
 from django.contrib.admin import site
+from django import forms
 
-from functools import wraps
+from functools import wraps, partial
 from StringIO import StringIO
 
 from .models import *
@@ -21,10 +22,6 @@ def need_login(f):
         return f(request, *a, **k)
     return wrapper
 
-@need_login
-def index(request):
-    return render_to_response('index.html', RequestContext(request))
-
 report_types = {}
 def report(type_name):
     def wrapper(f):
@@ -34,7 +31,7 @@ def report(type_name):
     return wrapper
 
 @report(u'全部合同')
-def contracts(request):
+def contracts(request, start, finish):
     wb = Workbook(style_compression=2)
     s = wb.add_sheet(u'全部合同')
     s.panes_frozen = True
@@ -84,7 +81,7 @@ def contracts(request):
     w(1, c(), u'合同竣工日期', stb[3])
     w(1, c(), u'实际竣工日期', stb[3])
     cell_styles.extend(
-        [easyxf(ss % (colors[3], 'False'), num_format_str=u'YYYY年MM月DD日')] * 4
+        [easyxf(ss % (colors[3], 'False'), num_format_str=u'YYYY-MM-DD')] * 4
     )
     w(1, c(), u'直接费', stb[3])
     w(1, c(), u'直接费（折）', stb[3])
@@ -110,7 +107,7 @@ def contracts(request):
     cell_styles.extend([st[4]]*(c(0)-l+1))
 
     l = c(0) + 1
-    datexf = easyxf(ss % (colors[1], 'False'), num_format_str=u'YYYY年MM月DD日')
+    datexf = easyxf(ss % (colors[1], 'False'), num_format_str=u'YYYY-MM-DD')
     w(1, c(), u'水电预算', stb[1])
     w(1, c(), u'木工预算', stb[1])
     w(1, c(), u'瓦工预算', stb[1])
@@ -148,11 +145,13 @@ def contracts(request):
     w(1, c(), u'工程管理员提点', stb[2])
     w(1, c(), u'工程经理提点', stb[2])
     w(1, c(), u'材料经理提点', stb[2])
+    w(1, c(), u'市场经理提点', stb[2])
+    w(1, c(), u'设计经理提点', stb[2])
     wm(0, 0, l, c(0), u'合同提点', stb[2])
     cell_styles.extend([st[2]]*(c(0)-l+1))
     # end header
 
-    for i, con in enumerate(Contract.objects.select_related(depth=1).order_by('-id')):
+    for i, con in enumerate(Contract.objects.filter(date_signed__range=[start, finish]).select_related(depth=1).order_by('-id')):
         l = [
             con.id,
             con.customer.name,
@@ -181,38 +180,51 @@ def contracts(request):
             con.generalfee3_paid,
             con.generalfee4_paid,
         ]
-        '''
-            1, 2, 3, 4,
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 'a', 'b', 'c', 'd', 'e', 'f',
-            4, 3, 2, 1,
-
-            11, 22, 33, 44, 55, 66, 77
-        ]
-        '''
 
         from collections import defaultdict as dd
         class dummy(object):
             def __getattribute__(self, v):
                 return None
-        exp = {i:dummy() for i in range(1, 5)}
-        for e in con.expenditures.all():
-            exp[e.type] = e
+        dummy = dummy()
+        e = {j:dummy for j in range(1, 20)}
+        for exp in con.expenditures.all():
+            e[exp.type] = exp
 
         l.extend([
-            exp[1].budget, exp[2].budget, exp[3].budget, exp[4].budget,
-            exp[1].amount1, exp[1].granttime1, exp[1].amount2, exp[1].granttime2,
-            exp[2].amount1, exp[2].granttime1, exp[2].amount2, exp[2].granttime2,
-            exp[3].amount1, exp[3].granttime1, exp[3].amount2, exp[3].granttime2,
-            exp[4].amount1, exp[4].granttime1, exp[4].amount2, exp[4].granttime2,
-            exp[1].materialfee, exp[2].materialfee, exp[3].materialfee, exp[4].materialfee,
+            e[1].budget, e[2].budget, e[3].budget, e[4].budget,
+            e[1].amount1, e[1].granttime1, e[1].amount2, e[1].granttime2,
+            e[2].amount1, e[2].granttime1, e[2].amount2, e[2].granttime2,
+            e[3].amount1, e[3].granttime1, e[3].amount2, e[3].granttime2,
+            e[4].amount1, e[4].granttime1, e[4].amount2, e[4].granttime2,
+            e[1].materialfee, e[2].materialfee, e[3].materialfee, e[4].materialfee,
         ])
 
-        l.extend(range(7))
+        c = {j:dummy for j in xrange(1, 20)}
+        for com in con.commissions.all():
+            c[com.type] = com
 
+        if c[1].amount is None:
+            designer_com = None
+        else:
+            designer_com = c[1].amount
+            if c[2].amount is not None:
+                designer_com += c[2].amount
 
+        l.extend([
+            c[3].amount,
+            designer_com,
+            c[4].amount,
+            c[8].amount,
+            c[6].amount,
+            c[5].amount,
+            c[7].amount,
+            c[9].amount,
+            c[10].amount,
+        ])
 
         for j, v in enumerate(l):
-            w(i+2, j, v, cell_styles[j])
+            if v is not None:
+                w(i+2, j, v, cell_styles[j])
 
     f = StringIO()
     wb.save(f)
@@ -220,10 +232,35 @@ def contracts(request):
     rsp['Content-Disposition'] = 'attachment; filename=contracts.xls'
     return rsp
 
+def _last_month(dt):
+    from datetime import date
+    d = date.today()
+    y, m = d.year, d.month
+    m -= dt
+    while m <= 0:
+        m += 12
+        y -= 1
+    return date(y, m, 1).strftime('%Y-%m-%d')
+
+class ReportForm(forms.Form):
+    report_type = forms.ChoiceField(
+        label=u'报表类型',
+        choices=[(type, name) for type, (_, name) in report_types.items()],
+    )
+    date_start = forms.DateField(label=u'开始日期', initial=partial(_last_month, 2))
+    date_finish = forms.DateField(label=u'结束日期', initial=partial(_last_month, 1))
+
 @need_login
-def reports(request, type):
-    try:
-        f = report_types[type]
-    except KeyError:
-        raise Http404()
-    return f[0](request)
+def reports(request):
+    form = ReportForm(request.POST)
+    if not form.is_valid():
+        return render_to_response('index.html', RequestContext(request, dict(report_form=form)))
+
+    meth = report_types[form.cleaned_data['report_type']][0]
+    start = form.cleaned_data['date_start']
+    finish = form.cleaned_data['date_finish']
+    return meth(request, start, finish)
+
+@need_login
+def index(request):
+    return render_to_response('index.html', RequestContext(request, dict(report_form=ReportForm())))

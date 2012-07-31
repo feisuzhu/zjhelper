@@ -1,1 +1,14 @@
 {% extends "skel.html" %}
+{% block blocks %}
+<div id="options" class="section">
+<div class="blockheader">选择报表类型</div>
+<div class="block">
+<form action="/reports" method="post">
+{% csrf_token %}
+{{ report_form.as_p }}
+<p><input type="submit" value="下载报表" /></p>
+</form>
+</div>
+</div>
+</div>
+{% endblock blocks %}

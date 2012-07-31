@@ -16,6 +16,6 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     url(r'^$', views.index),
-    url(r'^reports/(?P<type>\w+)/', views.reports),
+    url(r'^reports$', views.reports),
     url(r'^admin/', include(admin.site.urls)),
 )
