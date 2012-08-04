@@ -40,8 +40,8 @@ class ContractAdmin(admin.ModelAdmin):
         (u'基本信息', {
             'fields': (
                 ('customer', 'address', 'area', 'all_included'),
-                ('designer', 'salesman'),
-                ('date_signed', 'date_start', 'date_finish', 'date_finish_actual'),
+                ('designer', 'salesman', 'projmgr', 'projadmin', 'materialmgr'),
+                ('date_signed', 'date_start', 'date_finish', 'date_start_actual', 'date_finish_actual'),
                 ('directfee', 'directfee_discount', 'directfee_actual'),
                 ('managefee', 'managefee_discount'),
                 ('designfee', 'designfee_discount'),
@@ -58,7 +58,7 @@ class ContractAdmin(admin.ModelAdmin):
 
 class CommissionAdmin(admin.ModelAdmin):
     list_display = [
-        'staff', 'type', 'contract', 'granttime', 'amount',
+        'staff', 'type', 'contract', 'granttime', 'amount', 'tag'
     ]
     list_filter = [
         'type'
@@ -103,6 +103,12 @@ class PrimaryMaterialAdmin(admin.ModelAdmin):
         'name', 'reference_price'
     ]
 
+class OtherSalaryAdmin(admin.ModelAdmin):
+    list_display = ['staff', 'reason', 'amount', 'granttime']
+    date_hierarchy = 'granttime'
+    search_fields = ['staff__name', 'reason']
+    list_filter = ['staff']
+
 reg = admin.site.register
 reg(Staff, StaffAdmin)
 reg(Customer, CustomerAdmin)
@@ -111,3 +117,4 @@ reg(Commission, CommissionAdmin)
 reg(Expenditure, ExpenditureAdmin)
 reg(PrimaryMaterial, PrimaryMaterialAdmin)
 reg(PMExpenditure, PMExpenditureAdmin)
+reg(OtherSalary, OtherSalaryAdmin)

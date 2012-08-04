@@ -1,0 +1,11 @@
+{% extends 'skel.html' %}
+{% block blocks %}
+<div id="notice" class="section">
+<div class="blockheader">{{ caption|default:"信息：" }}</div>
+<div class="block">
+<pre>
+{{ text|default:"Info message" }}
+</pre>
+</div>
+</div>
+{% endblock blocks %}

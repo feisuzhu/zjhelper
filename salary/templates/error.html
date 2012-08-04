@@ -1,0 +1,9 @@
+{% extends 'skel.html' %}
+{% block blocks %}
+<div id="notice" class="caution">
+<div class="blockheader">{{ caption|default:"错误：" }}</div>
+<div class="block">
+{{ text|default:"Error message" }}
+</div>
+</div>
+{% endblock blocks %}
