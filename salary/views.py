@@ -696,7 +696,7 @@ def autofill(request):
             type = Commission.TYPE.MATERIALMGR,
             amount = 200 if c.all_included else 100,
             granttime = granttime,
-            staff = c.projmgr,
+            staff = c.materialmgr,
         )
     log.append(u'更新了%d条 材料经理提点' % len(cl))
 
