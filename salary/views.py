@@ -394,7 +394,7 @@ def autofill(request):
 
         fill(normal, rate)
         fill(high_discount, Decimal('0.03'))
-    del sales, saleslist
+    del saleslist
     assert nc == nc_actual
 
     log.append(u'更新了%d条 业务员提点' % nc)
