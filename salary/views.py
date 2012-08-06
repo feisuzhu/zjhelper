@@ -26,6 +26,29 @@ def need_login(f):
         return f(request, *a, **k)
     return wrapper
 
+def both_end(year, month):
+    from datetime import date
+
+    month -= 1
+    while month < 0:
+        year -= 1
+        month += 12
+    while month > 11:
+        year += 1
+        month -= 12
+    month += 1
+
+    start = date(year, month, 1)
+
+    for day in xrange(31, 27, -1):
+        try:
+            stop = date(start.year, start.month, day)
+            break
+        except ValueError:
+            pass
+
+    return start, stop
+
 report_types = {}
 def report(type_name):
     def wrapper(f):
@@ -83,9 +106,10 @@ def contracts(request, start, finish):
     w(1, c(), u'合同签订日期', stb[3])
     w(1, c(), u'合同开工日期', stb[3])
     w(1, c(), u'合同竣工日期', stb[3])
+    w(1, c(), u'实际开工日期', stb[3])
     w(1, c(), u'实际竣工日期', stb[3])
     cell_styles.extend(
-        [easyxf(ss % (colors[3], 'False'), num_format_str=u'YYYY-MM-DD')] * 4
+        [easyxf(ss % (colors[3], 'False'), num_format_str=u'YYYY-MM-DD')] * 5
     )
     w(1, c(), u'直接费', stb[3])
     w(1, c(), u'直接费（折）', stb[3])
@@ -97,7 +121,7 @@ def contracts(request, start, finish):
     w(1, c(), u'主材费', stb[3])
     w(1, c(), u'主材费(实际)', stb[3])
     wm(0, 0, l, c(0), u'合同基本信息', stb[3])
-    cell_styles.extend([st[3]]*(c(0)-l+1-4))
+    cell_styles.extend([st[3]]*(c(0)-l+1-5))
 
     l = c(0) + 1
     w(1, c(), u'已付定金', stb[4])
@@ -167,6 +191,7 @@ def contracts(request, start, finish):
             con.date_signed,
             con.date_start,
             con.date_finish,
+            con.date_start_actual,
             con.date_finish_actual,
             con.directfee,
             con.directfee_discount,
@@ -244,14 +269,183 @@ def contracts(request, start, finish):
     rsp['Content-Disposition'] = 'attachment; filename=contracts.xls'
     return rsp
 
+@report(u'工资表')
+def salary(request, start, stop):
+    from datetime import date
+    if not (start.year == stop.year) and (start.month == stop.month):
+        return render_to_response('error.html', RequestContext(request, dict(text=u'工资表只能按月输出报表')))
+
+    start, stop = both_end(start.year, start.month)
+
+    def builditer(seq):
+        def _genfunc():
+            for i in seq:
+                yield i
+
+        _gen = _genfunc()
+        def _wrapper():
+            return _gen.next()
+
+        return _wrapper
+
+    from itertools import count, cycle
+
+    colortbl = []
+    colors = [41, 47, 43, 44]
+    xftemplate = u'''
+        pattern: pattern solid, fore_color %d;
+        align: horizontal center, vertical center;
+        font: bold %s, name 微软雅黑, height 180;
+        borders: left thin, right thin, top thin, bottom thin;
+    '''
+    for i in colors:
+        norm = easyxf(xftemplate % (i, False))
+        bold = easyxf(xftemplate % (i, True))
+        colortbl.append((norm, bold))
+
+    wb = Workbook(style_compression=2)
+
+    for staff in Staff.objects.all():
+        sheet = wb.add_sheet(staff.name)
+        line = builditer(count(0))
+        color = builditer(cycle(colortbl))
+        w = sheet.write
+        wm = sheet.write_merge
+
+        total = Decimal('0')
+
+        # 基本信息
+        line()
+        ln = line()
+        norm, bold = color()
+
+        cols = [u'姓名', u'职位', u'考核月份', u'基本工资']
+        for i, colname in enumerate(cols):
+            w(ln, i, colname, bold)
+        wm(ln-1, ln-1, 0, len(cols)-1, u'基本信息', bold)
+        ln = line()
+        col = builditer(count(0))
+        w(ln, col(), staff.name, norm)
+        w(ln, col(), staff.get_position_display(), norm)
+        w(ln, col(), u'%s-%s' % (start.year, start.month), norm)
+        w(ln, col(), staff.basesalary, norm)
+        total += staff.basesalary
+        line()
+
+        # 职位相关
+        cols = vals= []
+        norm, bold = color()
+        if staff.position == Staff.POSITION.SALESMAN:
+            cols = [u'邀约客户', u'基本工资浮动']
+            cnt = staff.contracts_salesman.filter(
+                customer__arrive_time__range=(start, stop)
+            ).count()
+            c = cnt - 8
+            adj = c * 40 if c >= 0 else c * 80
+            total += adj
+            vals = [cnt, adj]
+        elif staff.position in (Staff.POSITION.DESIGNER, Staff.POSITION.DZLEADER):
+            cols = [u'当月签单额', u'基本工资浮动']
+            _sum = staff.contracts_designer.filter(
+                date_signed__range=(start, stop)
+            ).aggregate(sum=Sum('directfee_discount'))['sum']
+            while True:
+                if _sum < 30000: adj = 0; break
+                elif _sum < 80000: adj = 400; break
+                elif _sum < 150000: adj = 700; break
+                elif _sum < 200000: adj = 1200; break
+                else: adj = 1700; break
+            vals = [_sum, adj]
+            total += adj
+
+        for i, (head, val) in enumerate(zip(cols, vals)):
+            w(1, 4+i, head, bold)
+            w(2, 4+i, val, norm)
+        wm(0, 0, 4, 4+len(cols)-1, u'职位相关', bold)
+
+        #  提点
+        norm, bold = color()
+        headerln = line()
+
+        cols = [u'合同', u'类型', u'数额', u'说明']
+        ln = line()
+        for i, colname in enumerate(cols):
+            w(ln, i, colname, bold)
+
+        comsum = Decimal('0')
+        coms = staff.commissions.filter(
+            granttime__range=both_end(start.year, start.month+1)
+        ).order_by('contract__id', 'type')
+
+        for com in coms:
+            ln = line()
+            col = builditer(count(0))
+            w(ln, col(), u'%s' % com.contract, norm)
+            w(ln, col(), com.get_type_display(), norm)
+            w(ln, col(), com.amount, norm)
+            w(ln, col(), com.tag, norm)
+            comsum += com.amount
+
+        total += comsum
+
+        ln = line()
+        w(ln, 0, u'合计', bold)
+        wm(ln, ln, 1, len(cols)-1, comsum, norm)
+
+        wm(headerln, headerln, 0, len(cols)-1, u'合同提点', bold)
+        line()
+
+        # 其他
+        norm, bold = color()
+        headerln = line()
+
+        ln = line()
+        cols = [u'发放原因', u'数额']
+        for i, colname in enumerate(cols):
+            w(ln, i, colname, bold)
+
+        oss = staff.othersalaries.filter(
+            granttime__range=both_end(start.year, start.month)
+        )
+
+        ossum = Decimal('0')
+        for os in oss:
+            ln = line()
+            w(ln, 0, os.reason, norm)
+            w(ln, 1, os.amount, norm)
+            ossum += os.amount
+        ln = line()
+        w(ln, 0, u'合计', bold)
+        w(ln, 1, ossum, norm)
+        wm(headerln, headerln, 0, 1, u'其他工资', bold)
+        total += ossum
+        line()
+
+        # 工资合计
+        norm, bold = color()
+        ln = line()
+        w(ln, 0, u'本月工资合计', bold)
+        w(ln, 1, total, norm)
+        ln = line()
+        w(ln, 0, u'本月工资实发', bold)
+        w(ln, 1, total, norm)
+
+    f = StringIO()
+    wb.save(f)
+    rsp = HttpResponse(f.getvalue(), content_type='application/vnd.ms-excel')
+    rsp['Content-Disposition'] = 'attachment; filename=salaries.xls'
+    return rsp
+
 def _last_month(dt):
     from datetime import date, timedelta
     d = date.today()
     y, m = d.year, d.month
+    m -= 1
     m -= dt
-    while m <= 0:
+    while m < 0:
         m += 12
         y -= 1
+    m += 1
     d = date(y, m, 1)
     if not dt:
         d = d - timedelta(1)
