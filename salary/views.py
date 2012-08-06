@@ -8,6 +8,7 @@ from django.contrib.admin import site
 from django import forms
 from django.db import transaction
 from django.db.models import Q, F, Sum
+from django.core.exceptions import ValidationError
 
 from functools import wraps, partial
 from StringIO import StringIO
@@ -221,7 +222,6 @@ def contracts(request, start, finish):
             if all(i is None for i in al):
                 return None
             al = [i for i in al if i is not None]
-            print al
             return sum(al)
 
         l.extend([
@@ -255,7 +255,7 @@ def _last_month(dt):
     d = date(y, m, 1)
     if not dt:
         d = d - timedelta(1)
-    return d.strftime('%Y-%m-%d')
+    return d
 
 def _date_granttime():
     import datetime
@@ -270,9 +270,16 @@ class ReportForm(forms.Form):
     date_start = forms.DateField(label=u'开始日期', initial=partial(_last_month, 1))
     date_finish = forms.DateField(label=u'结束日期', initial=partial(_last_month, 0))
 
+def _month():
+    return _last_month(1).strftime('%Y-%m')
+
+def _month_validator(v):
+    import re
+    if not re.match(r'^\d{4}-\d{1,2}$', v):
+        raise ValidationError(u'月份格式错误')
+
 class AutoFillForm(forms.Form):
-    date_start = forms.DateField(label=u'开始日期', initial=partial(_last_month, 1))
-    date_finish = forms.DateField(label=u'结束日期', initial=partial(_last_month, 0))
+    month = forms.CharField(label=u'填写月份', initial=_month, validators=[_month_validator])
     date_granttime = forms.DateField(label=u'提点发放日期', initial=_date_granttime)
 
 @need_login
@@ -294,8 +301,22 @@ def autofill(request):
     if not form.is_valid():
         return render_to_response('error.html', dict(text=u'你的输入有错误，请返回重新来过'))
 
-    start = form.cleaned_data['date_start']
-    stop = form.cleaned_data['date_finish']
+    import re
+    monthstr = form.cleaned_data['month']
+    year, month = re.match(r'^(\d{4})-(\d{1,2})$', monthstr).groups()
+    year, month = int(year), int(month)
+
+    from datetime import date
+
+    start = date(year, month, 1)
+
+    for day in xrange(31, 27, -1):
+        try:
+            stop = date(year, month, day)
+            break
+        except ValueError:
+            pass
+
     granttime = form.cleaned_data['date_granttime']
 
     log = []
@@ -535,8 +556,6 @@ def autofill(request):
         _sum = sum(c.directfee_discount for c in normal)
         rate = ratefunc(sum(c.directfee_discount for c in normal))
 
-        print 'DZ1: sum: %s' % _sum
-
         fill(normal, rate)
         fill(high_discount, Decimal('0.03'))
     assert nc == nc_actual
@@ -572,7 +591,6 @@ def autofill(request):
                 if i.directfee_discount / i.directfee >= d09
             )
             rate = ratefunc(_sum)
-            print _start, _stop
         else:
             rate = Decimal('0.03')
 
