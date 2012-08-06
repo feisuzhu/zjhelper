@@ -361,7 +361,9 @@ def salary(request, start, stop):
         for i, (head, val) in enumerate(zip(cols, vals)):
             w(1, 4+i, head, bold)
             w(2, 4+i, val, norm)
-        wm(0, 0, 4, 4+len(cols)-1, u'职位相关', bold)
+
+        if len(cols):
+            wm(0, 0, 4, 4+len(cols)-1, u'职位相关', bold)
 
         #  提点
         norm, bold = color()
