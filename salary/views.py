@@ -111,6 +111,7 @@ def contracts(request, start, finish):
     cell_styles.extend(
         [easyxf(ss % (colors[3], 'False'), num_format_str=u'YYYY-MM-DD')] * 5
     )
+    w(1, c(), u'面积', stb[3])
     w(1, c(), u'直接费', stb[3])
     w(1, c(), u'直接费（折）', stb[3])
     w(1, c(), u'直接费(实际)', stb[3])
@@ -193,6 +194,7 @@ def contracts(request, start, finish):
             con.date_finish,
             con.date_start_actual,
             con.date_finish_actual,
+            con.area,
             con.directfee,
             con.directfee_discount,
             con.directfee_actual,
