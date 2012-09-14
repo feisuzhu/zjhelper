@@ -78,7 +78,7 @@ class CustomerComment(models.Model):
     text = models.TextField(u'备注内容')
 
     def __unicode__(self):
-        return u'%s - 备注内容' % self.name
+        return u'%s - 备注内容' % self.customer.name
 
 class Contract(models.Model):
 
