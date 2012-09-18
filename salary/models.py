@@ -84,6 +84,9 @@ class Contract(models.Model):
 
     class Meta:
         verbose_name_plural = verbose_name = u'合同'
+        permissions = (
+            ('generate_report', u'生成报表'),
+        )
 
     customer = models.ForeignKey(Customer, verbose_name=u'客户', related_name='contracts')
     address = models.CharField(u'工程地址', max_length=60)

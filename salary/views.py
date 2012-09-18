@@ -23,6 +23,12 @@ def need_login(f):
     def wrapper(request, *a, **k):
         if not site.has_permission(request):
             return site.login(request)
+
+        if not request.user.has_perm('zjhelper.generate_report'):
+            return render_to_response('error.html', RequestContext(request,
+                dict(text=u'你不能查看报表。')
+            ))
+
         return f(request, *a, **k)
     return wrapper
 
