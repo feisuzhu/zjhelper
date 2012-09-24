@@ -2,7 +2,7 @@
 # Create your views here.
 
 from django.http import HttpResponse, Http404
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext, Context
 from django.contrib.admin import site
 from django import forms
@@ -25,9 +25,7 @@ def need_login(f):
             return site.login(request)
 
         if not request.user.has_perm('zjhelper.generate_report'):
-            return render_to_response('error.html', RequestContext(request,
-                dict(text=u'你不能查看报表。')
-            ))
+            return redirect('admin/')
 
         return f(request, *a, **k)
     return wrapper
@@ -275,6 +273,85 @@ def contracts(request, start, finish):
     wb.save(f)
     rsp = HttpResponse(f.getvalue(), content_type='application/vnd.ms-excel')
     rsp['Content-Disposition'] = 'attachment; filename=contracts.xls'
+    return rsp
+
+@report(u'全部客户')
+def customers(request, start, stop):
+    cl = Customer.objects.filter(
+        arrive_time__range=(start, stop)
+    ).prefetch_related('comments')
+
+    from itertools import count, cycle
+
+    colortbl = []
+    colors = [41, 47, 43, 44]
+    xftemplate = u'''
+        pattern: pattern solid, fore_color %d;
+        align: horizontal center, vertical center;
+        font: bold %s, name 微软雅黑, height 180;
+        borders: left thin, right thin, top thin, bottom thin;
+    '''
+    for i in colors:
+        norm = easyxf(xftemplate % (i, False))
+        bold = easyxf(xftemplate % (i, True))
+        colortbl.append((norm, bold))
+
+    wb = Workbook(style_compression=2)
+    sheet = wb.add_sheet(u'客户列表')
+    w = sheet.write
+
+    def builditer(seq):
+        def _genfunc():
+            for i in seq:
+                yield i
+
+        _gen = _genfunc()
+        def _wrapper():
+            return _gen.next()
+
+        return _wrapper
+
+    line = builditer(count(0))
+    line()
+    lst = [
+        u'姓名',        u'电话',        u'到店时间',        u'客户来源',
+        u'区域',        u'接待业务员',   u'接待设计师'
+    ]
+
+    for i in xrange(1, 11):
+        lst += [u'备注时间%d' % i, u'备注内容%d' % i]
+
+    for i, cap, (_, bold) in zip(count(0), lst, cycle(colortbl)):
+        w(0, i, cap, bold)
+
+    for c in cl:
+        l = line()
+        color = builditer(cycle(colortbl))
+
+        data = [
+            c.name,
+            c.phone,
+            str(c.arrive_time),
+            c.source,
+            c.region,
+            c.salesman.name if c.salesman else None,
+            c.designer.name if c.designer else None,
+        ]
+        for i, d in enumerate(data):
+            norm, _ = color()
+            if d: w(l, i, d, norm)
+
+        col = builditer(count(len(data)))
+        for com in c.comments.all():
+            norm, _ = color()
+            w(l, col(), str(com.date), norm)
+            norm, _ = color()
+            w(l, col(), com.text, norm)
+
+    f = StringIO()
+    wb.save(f)
+    rsp = HttpResponse(f.getvalue(), content_type='application/vnd.ms-excel')
+    rsp['Content-Disposition'] = 'attachment; filename=customers.xls'
     return rsp
 
 @report(u'工资表')

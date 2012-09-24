@@ -58,7 +58,7 @@ class Customer(models.Model):
         verbose_name = verbose_name_plural = u"客户"
 
     name = models.CharField(u'客户姓名', max_length=10)
-    phone = models.CharField(u'电话', max_length=20)
+    phone = models.CharField(u'电话', max_length=20, unique=True)
     arrive_time = models.DateField(u'到店时间')
     source = models.CharField(u'客户来源', max_length=20)
     region = models.CharField(u'区域', max_length=20)
