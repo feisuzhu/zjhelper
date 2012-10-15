@@ -625,11 +625,12 @@ def autofill(request):
         )
     log.append(u'更新了%d条 设计师主材返点' % len(cl))
 
-    # 设计费：所有实际开工日期在7月份的，且7月已收首期款不为零，设计费（折） <= 已付设计费的，发设计费（折）-面积*3
+    # 设计费：所有实际开工日期在7月份的，且7月已收首期款不为零，0 < 设计费（折） <= 已付设计费的，发设计费（折）-面积*3
     cl = Contract.objects.exclude(
         commissions__type=Commission.TYPE.DESIGNFEE
     ).filter(
         designfee_discount__lte=F('designfee_paid'),
+        designfee_discount__gt=0,
         date_start_actual__range=(start, stop),
         generalfee1_paid__gt=0,
         designer__isnull=False,
