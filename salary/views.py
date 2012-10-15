@@ -190,8 +190,8 @@ def contracts(request, start, finish):
         l = [
             con.id,
             con.customer.name,
-            con.designer.name,
-            con.salesman.name,
+            con.designer.name if con.designer else None,
+            con.salesman.name if con.salesman else None,
 
             con.date_signed,
             con.date_start,
