@@ -632,6 +632,7 @@ def autofill(request):
         designfee_discount__lte=F('designfee_paid'),
         date_start_actual__range=(start, stop),
         generalfee1_paid__gt=0,
+        designer__isnull=False,
     )
 
     for c in cl:
