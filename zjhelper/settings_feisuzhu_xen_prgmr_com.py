@@ -1,24 +1,28 @@
 # Django settings for zjhelper project.
+from .secret import *
 
-DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+#DEBUG = True
+#TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
+    ('Proton', 'feisuzhu@163.com'),
 )
 
 MANAGERS = ADMINS
 
+'''
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'salary',                      # Or path to database file if using sqlite3.
-        'USER': 'root',                      # Not used with sqlite3.
+        'NAME': '/dev/shm/salary',                      # Or path to database file if using sqlite3.
+        'USER': '',                      # Not used with sqlite3.
         'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '/var/run/mysqld/mysqld.sock',                      # Set to empty string for localhost. Not used with sqlite3.
+        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
+'''
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -59,7 +63,7 @@ MEDIA_URL = ''
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = ''
+STATIC_ROOT = '/home/proton/zjsalary/static_files'
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
@@ -123,6 +127,7 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     #'django.contrib.admindocs',
     'salary',
+    'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging

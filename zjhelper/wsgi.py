@@ -15,7 +15,8 @@ framework.
 """
 import os
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zjhelper.settings")
+node = os.uname()[1].replace('.', '_').lower()
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zjhelper.settings_%s" % node)
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION
